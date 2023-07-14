@@ -1,44 +1,35 @@
-const noOp = () => {};
+/// <reference path="chrome.d.ts" />
+
+const noOp = () => { };
 const nuLL = () => null;
 const d = new Date();
-const addHours = (n) => {
+
+const toTime = (n) => {
   d.setHours(...n);
   return d.getTime() | 0;
 };
+
 const arrayChunks = (array, chunk_size) =>
   Array(Math.ceil(array.length / chunk_size))
     .fill()
     .map((_, index) => index * chunk_size)
     .map((begin) => array.slice(begin, begin + chunk_size));
+
 const calculateCost = ({ hourlyRate, durations }) => hourlyRate * durations;
 
-const toRupiah = (num) => {
-  if (isNaN(num)) return 'Not a Number'
-  let rupiah = "";
-  const reverseNumber = num
-    .toString()
-    .split("")
-    .reverse()
-    .join("");
-  const arrReverseNumber = [...Array(reverseNumber.length).keys()];
-  arrReverseNumber.map(index => {
-    if (index % 3 === 0) rupiah += `${reverseNumber.substr(index, 3)}.`
-  });
+const id = { costly: "mCostly" };
 
-  return `Rp${
-    rupiah.split("", rupiah.length - 1)
-    .reverse()
-    .join("")
-  }`;
-};
-
-const id = { costly: "xyz-costly" };
-
-function Message(props) {
+function Message({ currency, ...props }) {
   const element = document.createElement("div");
   const iconWrapper = document.createElement("div");
   const contentWrapper = document.createElement("div");
-  
+  const [_currency, countryCode] = currency.split('.')
+  const formatCurrency = new Intl.NumberFormat(countryCode, {
+    style: 'currency',
+    currency: _currency,
+    currencyDisplay: 'symbol',
+  }).format
+
   iconWrapper.style.paddingLeft = "28px";
   iconWrapper.style.width = "40px";
   iconWrapper.style.maxHeight = "52px";
@@ -63,7 +54,7 @@ function Message(props) {
       tag.style.color = "rgb(234,67,53)";
       tag.style.padding = "0 0 0 0.1em";
     }
-    tag.appendChild(document.createTextNode(k === "cost" ? toRupiah(v) : v));
+    tag.appendChild(document.createTextNode(k === "cost" ? formatCurrency(v) : v));
     contentWrapper.appendChild(tag);
   });
 
@@ -72,49 +63,54 @@ function Message(props) {
   return element;
 }
 
-function getDurations(timeStr) {
-  const nTime = (timeStr || "").split("").filter((n) => /\d+/.test(n));
-
-  const [d1, d2] = {
-    [true]: [0, 0],
-    [nTime.length === 6]: arrayChunks(nTime, 3).map((d) => addHours(d)),
-    [nTime.length === 7]: arrayChunks(nTime.reverse(), 3)
-      .map((d) => addHours(d))
-      .reverse(),
-    [nTime.length === 8]: arrayChunks(nTime, 4).map((d) => addHours(d)),
-  }.true;
+const getDurations = (timeStr) => {
+  const [d1, d2] = (timeStr || "")
+    .split("–") // `–` is not equal `-`
+    .map(s => {
+      const re = /(am|pm)/
+      const hasPM = /pm/.test(s)
+      const [h, m] = s.replace(re, '').split(":").map(n => n | 0)
+      return hasPM && h < 12 ? [h + 12, m] : [h, m]
+    })
+    .map(toTime)
 
   return Math.floor((d2 - d1) / (1000 * 60 * 60));
 }
 
+const getOptions = () => chrome.storage.sync.get(['hourlyRate', 'currency'])
+
 function makeViewCostly() {
-  const targetDialog = Promise.resolve()
-    .then(
-      () =>
-        document.querySelector("[data-open-edit-note]").childNodes[0]
-          .childNodes[2]
-    )
-    .catch(nuLL);
+  // when user click event at calendar.google.com
+  const selector = () => document.querySelector("[data-open-edit-note]")
+  const getNode = () => selector().childNodes[0].childNodes[2]
+  const getTimeNode = () =>
+    getNode().childNodes[0].childNodes[1].childNodes[0].childNodes[1].childNodes[2]
+      .firstChild.textContent;
 
+  // get options first
+  getOptions()
+    .then(options => ({
+      options,
+      node: getNode(),
+      timeNode: getTimeNode()
+    }))
+    .then(({ options, node, timeNode }) => {
+      const durations = getDurations(timeNode);
+      const costly = Message({
+        title: "Estimated Meeting Cost is ",
+        cost: calculateCost({
+          hourlyRate: options.hourlyRate | 0,
+          durations: durations | 0,
+        }),
+        currency: options.currency || 'id-ID'
+      });
 
-  targetDialog &&
-    targetDialog
-      .then((node) => {
-        const timeStr =
-          node.childNodes[0].childNodes[1].childNodes[0].childNodes[1].childNodes[2]
-            .firstChild.textContent;
-        const durations = getDurations(timeStr);
-        const costly = Message({
-          title: "Estimated Meeting Cost is ",
-          cost: calculateCost({
-            hourlyRate: 560000,
-            durations: durations | 0,
-          }),
-        });
-
-        node.childNodes[1].append(costly);
-      })
-      .catch(noOp);
+      node.childNodes[1].append(costly);
+    })
+    .catch(noOp)
 }
 
-setInterval(() => !document.getElementById(id.costly) && makeViewCostly(), 500);
+const listener = () =>
+  setInterval(() => !document.getElementById(id.costly) && makeViewCostly(), 300);
+
+listener()
