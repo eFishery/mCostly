@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "Meeting is COSTLY!",
+  "author": "r17x",
+  "version": "1.0.0-beta",
+  "content_scripts": [
+    {
+      "matches": ["https://calendar.google.com/*"],
+      "js": ["content.js"]
+    }
+  ],
+  "permissions": ["activeTab", "scripting", "tabs"],
+  "action": {},
+  "background": {
+    "service_worker": "background.js"
+  }
+}
