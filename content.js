@@ -1,6 +1,6 @@
 /// <reference path="chrome.d.ts" />
 
-const noOp = () => {};
+const noOp = () => { };
 const nuLL = () => null;
 const d = new Date();
 
@@ -97,7 +97,7 @@ function makeViewCostly() {
       participantsNode: getParticipantsNode(),
     }))
     .then(({ options, node, timeNode, participantsNode }) => {
-      participantsNode.childNodes.forEach((n) => console.log(n.textContent));
+      // participantsNode.childNodes.forEach((n) => console.log(n.textContent));
       const durations = getDurations(timeNode);
       const costEstimation = calculateCost({
         hourlyRate: options.hourlyRate | 0,
