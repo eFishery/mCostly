@@ -6,20 +6,11 @@
   "options_page": "options.html",
   "content_scripts": [
     {
-      "matches": [
-        "https://calendar.google.com/*"
-      ],
-      "js": [
-        "content.js"
-      ]
+      "matches": ["https://calendar.google.com/*"],
+      "js": ["content.js"]
     }
   ],
-  "permissions": [
-    "storage",
-    "activeTab",
-    "scripting",
-    "tabs"
-  ],
+  "permissions": ["storage", "activeTab", "scripting", "tabs"],
   "action": {},
   "background": {
     "service_worker": "background.js"
