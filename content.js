@@ -1,11 +1,13 @@
 /// <reference path="chrome.d.ts" />
-
-const noOp = () => { };
+const noOp = () => {};
 const nuLL = () => null;
 const d = new Date();
 
 const toTime = (n) => {
-  d.setHours(...n);
+  const [hours, minutes] = n;
+  const adjustedHours = hours >= 12 ? hours - 12 : hours; // Adjust hours if greater than or equal to 12
+  const adjustedMinutes = minutes || 0;
+  d.setHours(adjustedHours, adjustedMinutes);
   return d.getTime() | 0;
 };
 
@@ -15,7 +17,13 @@ const arrayChunks = (array, chunk_size) =>
     .map((_, index) => index * chunk_size)
     .map((begin) => array.slice(begin, begin + chunk_size));
 
-const calculateCost = ({ hourlyRate, durations }) => hourlyRate * durations;
+    const calculateCost = ({ hourlyRate, durations }) => {
+      if (durations < 1) {
+        return 0;
+      }
+      const hourlyRateInMinutes = hourlyRate / 60; // Convert hourly rate to minutes
+      return hourlyRateInMinutes * durations;
+    };
 
 const id = { costly: "mCostly" };
 
@@ -59,8 +67,9 @@ function Message(props) {
 }
 
 const getDurations = (timeStr) => {
+  // originally using U+2013 `–` and `-` is U+002d
   const [d1, d2] = (timeStr || "")
-    .split("–") // `–` is not equal `-`
+    .split("–")
     .map((s) => {
       const re = /(am|pm)/;
       const hasPM = /pm/.test(s);
@@ -68,14 +77,23 @@ const getDurations = (timeStr) => {
         .replace(re, "")
         .split(":")
         .map((n) => n | 0);
-      return hasPM && h < 12 ? [h + 12, m] : [h, m];
+      return hasPM && h <= 12 ? [h + 12, m] : [h, m];
     })
     .map(toTime);
 
-  return Math.floor((d2 - d1) / (1000 * 60 * 60));
+  return Math.floor((d2 - d1) / (1000 * 60));
 };
 
-const getOptions = () => chrome.storage.sync.get(["hourlyRate", "currency"]);
+const getOptions = () =>
+  new Promise((resolve, reject) => {
+    chrome.storage.sync.get(["hourlyRate", "currency"], (result) => {
+      if (chrome.runtime.lastError) {
+        reject(chrome.runtime.lastError);
+      } else {
+        resolve(result);
+      }
+    });
+  });
 
 function makeViewCostly() {
   // when user click event at calendar.google.com
@@ -115,7 +133,7 @@ function makeViewCostly() {
       // formatCurrency_(options.currency.split('.')[1] || "USD")
 
       const costNode = Message({
-        title: "Estimated Meeting Cost is ",
+        title: "Hourly Meeting Cost is ",
         cost: formatCurrency(costEstimation),
       });
 
@@ -137,10 +155,14 @@ function makeViewCostly() {
     .catch(noOp);
 }
 
-const listener = () =>
-  setInterval(
-    () => !document.getElementById(id.costly) && makeViewCostly(),
-    300
-  );
+let intervalId;
 
-listener();
+const listener = () => {
+  if (!document.getElementById(id.costly)) {
+    makeViewCostly();
+  } else {
+    //clearInterval(intervalId);
+  }
+};
+
+intervalId = setInterval(listener, 50);
