@@ -133,7 +133,7 @@ function makeViewCostly() {
       // formatCurrency_(options.currency.split('.')[1] || "USD")
 
       const costNode = Message({
-        title: "Hourly Meeting Cost is ",
+        title: "Meeting cost per-person ",
         cost: formatCurrency(costEstimation),
       });
 
@@ -160,8 +160,6 @@ let intervalId;
 const listener = () => {
   if (!document.getElementById(id.costly)) {
     makeViewCostly();
-  } else {
-    //clearInterval(intervalId);
   }
 };
 
