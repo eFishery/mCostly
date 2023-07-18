@@ -1,5 +1,5 @@
 /// <reference path="chrome.d.ts" />
-const noOp = () => {};
+const noOp = () => { };
 const nuLL = () => null;
 const d = new Date();
 
@@ -17,15 +17,19 @@ const arrayChunks = (array, chunk_size) =>
     .map((_, index) => index * chunk_size)
     .map((begin) => array.slice(begin, begin + chunk_size));
 
-    const calculateCost = ({ hourlyRate, durations }) => {
-      if (durations < 1) {
-        return 0;
-      }
-      const hourlyRateInMinutes = hourlyRate / 60; // Convert hourly rate to minutes
-      return hourlyRateInMinutes * durations;
-    };
+const calculateCost = ({ hourlyRate, durations }) => {
+  if (durations < 1) {
+    return 0;
+  }
+  const hourlyRateInMinutes = hourlyRate / 60; // Convert hourly rate to minutes
+  return hourlyRateInMinutes * durations;
+};
 
-const id = { costly: "mCostly" };
+const id = {
+  costly: "mCostly",
+  allMeetingEvents: 'div[role="button"][data-eventchip][data-opens-details="true"][data-eventid][data-focusable][jsaction][jscontroller]', // querySelectorAll
+  openEditMeetingEvent: '[data-open-edit-note]',
+};
 
 function Message(props) {
   const element = document.createElement("div");
@@ -97,7 +101,7 @@ const getOptions = () =>
 
 function makeViewCostly() {
   // when user click event at calendar.google.com
-  const selector = () => document.querySelector("[data-open-edit-note]");
+  const selector = () => document.querySelector(id.openEditMeetingEvent);
   const getNode = () => selector().childNodes[0].childNodes[2];
   const getTimeNode = () =>
     getNode().childNodes[0].childNodes[1].childNodes[0].childNodes[1]
@@ -155,14 +159,75 @@ function makeViewCostly() {
     .catch(noOp);
 }
 
-let intervalId;
+const findElement = selector => {
+  return new Promise((resolve) => {
+    function checkElement() {
+      const element = selector();
 
-const listener = () => {
-  if (!document.getElementById(id.costly)) {
-    makeViewCostly();
-  } else {
-    //clearInterval(intervalId);
+      if (
+        element ||
+        (Array.isArray(element) && element.length > 0)
+      ) {
+        // Element found, resolve the Promise with the element
+        resolve(element);
+      } else {
+        // Element not found, continue searching with the next animation frame
+        requestAnimationFrame(checkElement);
+      }
+    }
+
+    requestAnimationFrame(checkElement);
+  });
+}
+
+// TODO make smoothly
+// 1. find all nodes of event with findElement - it will be return Node or NodeList ✅
+window.addEventListener('load', () => {
+  const findAllMeetingEvents = () => document.querySelectorAll(id.allMeetingEvents)
+
+  const TODO = openEdit => {
+    console.info(`
+    found open-edit meeting and need to attach makeViewCostly here with approaches:
+    * MutationObserver
+    * RAF - requestAnimationFrame
+    * or Your Suggestions
+  `, openEdit)
+
+    let intervalId
+
+    const observer = new MutationObserver(
+      mutations => {
+        console.log("o", openEdit.querySelector(`[id=${id.costly}]`))
+        mutations.forEach(
+          mutationNode => console.info(mutationNode.target.querySelector(`[id=${id.costly}]`))
+        )
+      }
+    )
+    // when childList is true it will be call mutation callback - updated new records of mutations
+    observer.observe(openEdit, { childList: true })
+
+    // maybe we need to handle intervalId
+    intervalId = setInterval(
+      () => {
+        if (!openEdit.querySelector(`div[id="${id.costly}"]`)) {
+          makeViewCostly()
+        }
+      },
+      100
+    )
   }
-};
 
-intervalId = setInterval(listener, 50);
+  const handleClickMeetingEvent = () =>
+    findElement(() => document.querySelector(id.openEditMeetingEvent)).then(TODO)
+
+  const addHandleClickToAllMeetings = allMeetings =>
+    allMeetings.forEach(
+      meeting => meeting.addEventListener('click',
+        handleClickMeetingEvent
+      )
+    )
+
+  findElement(findAllMeetingEvents)
+    .then(Array.from)
+    .then(addHandleClickToAllMeetings)
+})
