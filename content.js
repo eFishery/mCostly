@@ -1,5 +1,5 @@
 /// <reference path="chrome.d.ts" />
-const noOp = () => {};
+const noOp = () => { };
 const nuLL = () => null;
 const d = new Date();
 
@@ -17,28 +17,35 @@ const arrayChunks = (array, chunk_size) =>
     .map((_, index) => index * chunk_size)
     .map((begin) => array.slice(begin, begin + chunk_size));
 
-    const calculateCost = ({ hourlyRate, durations }) => {
-      if (durations < 1) {
-        return 0;
-      }
-      const hourlyRateInMinutes = hourlyRate / 60; // Convert hourly rate to minutes
-      return hourlyRateInMinutes * durations;
-    };
+const calculateCost = ({ hourlyRate, durations }) => {
+  if (durations < 1) {
+    return 0;
+  }
+  const hourlyRateInMinutes = hourlyRate / 60; // Convert hourly rate to minutes
+  return hourlyRateInMinutes * durations;
+};
 
 const id = { costly: "mCostly" };
 
-function Message(props) {
-  const element = document.createElement("div");
+const createIconElement = () => {
   const iconWrapper = document.createElement("div");
-  const contentWrapper = document.createElement("div");
+  const icon = document.createElement("i");
 
+  icon.setAttribute("class", "google-material-icons");
+  icon.innerHTML = "attach_money";
   iconWrapper.style.paddingLeft = "28px";
   iconWrapper.style.width = "40px";
   iconWrapper.style.maxHeight = "52px";
-  const icon = document.createElement("i");
-  icon.setAttribute("class", "google-material-icons");
-  icon.innerHTML = "attach_money";
   iconWrapper.appendChild(icon);
+
+  return iconWrapper;
+}
+
+function Message(props) {
+  const element = document.createElement("div");
+  const contentWrapper = document.createElement("div");
+  const icon = createIconElement()
+
   element.id = id.costly;
   element.style.width = "100%";
   element.style.display = "flex";
@@ -46,8 +53,6 @@ function Message(props) {
   element.style.minHeight = "40px";
   element.style.paddingRight = "16px";
   element.style.color = "rgb(60,64,67)";
-
-  element.appendChild(iconWrapper);
 
   contentWrapper.style.letterSpacing = ".2px";
 
@@ -61,6 +66,7 @@ function Message(props) {
     contentWrapper.appendChild(tag);
   });
 
+  element.appendChild(icon);
   element.appendChild(contentWrapper);
 
   return element;
