@@ -1,8 +1,8 @@
 const app0 = (f) => f();
 
 const defaultOptions = {
-  hourlyRate: 560000,
-  currency: "IDR.id-ID",
+  hourlyRate: 0,
+  currency: "",
 };
 
 const id = {
